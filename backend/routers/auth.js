@@ -1,6 +1,8 @@
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
+const router = express.Router();
 const rutaUsuarios = path.join(__dirname, '../data/usuarios.json');
 
 function leerUsuarios() {
@@ -12,70 +14,53 @@ function guardarUsuarios(usuarios) {
     fs.writeFileSync(rutaUsuarios, JSON.stringify(usuarios, null, 2));
 }
 
-function leerCuerpo(req) {
-    return new Promise((resolve, reject) => {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', () => {
-            try {
-                resolve(JSON.parse(body));
-            } catch {
-                reject(new Error('JSON inválido'));
-            }
-        });
-    });
-}
-
-async function registro(req, res) {
+// Registro //
+router.post('/registrar', (req, res) => {
     try {
-        const { email, username, password } = await leerCuerpo(req);
+        const { email, username, password } = req.body;
 
         if (!email || !username || !password) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
+            return res.status(400).json({
                 error: 'Todos los campos son obligatorios'
-            }));
+            });
         }
 
         const usuarios = leerUsuarios();
 
         if (usuarios.some(u => u.email === email)) {
-            res.writeHead(409, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
+            return res.status(409).json({
                 error: 'El correo ya está registrado'
-            }));
+            });
         }
 
         if (usuarios.some(u => u.username === username)) {
-            res.writeHead(409, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
+            return res.status(409).json({
                 error: 'El nombre de usuario ya está en uso'
-            }));
+            });
         }
 
         usuarios.push({ email, username, password });
         guardarUsuarios(usuarios);
 
-        res.writeHead(201, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
+        res.status(201).json({
             message: 'Usuario registrado correctamente'
-        }));
+        });
 
     } catch (error) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Error interno del servidor' }));
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
-}
+});
 
-async function login(req, res) {
+// Login //
+
+router.post('/login', (req, res) => {
     try {
-        const { username, password } = await leerCuerpo(req);
+        const { username, password } = req.body;
 
         if (!username || !password) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
+            return res.status(400).json({
                 error: 'Usuario y contraseña son obligatorios'
-            }));
+            });
         }
 
         const usuarios = leerUsuarios();
@@ -84,21 +69,18 @@ async function login(req, res) {
         );
 
         if (!usuario) {
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
+            return res.status(401).json({
                 error: 'Credenciales incorrectas'
-            }));
+            });
         }
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
+        res.status(200).json({
             message: `Bienvenido, ${username}`
-        }));
+        });
 
     } catch (error) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Error interno del servidor' }));
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
-}
+});
 
-module.exports = { registro, login };
+module.exports = router;
