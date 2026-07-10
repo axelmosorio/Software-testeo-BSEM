@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://software-testeo-bsem-1.onrender.com';
 
 export const servicioLogin = async (username, password) => {
     const response = await fetch(`${API_URL}/login`, {
